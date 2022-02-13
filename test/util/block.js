@@ -6,4 +6,13 @@ const getTimestamp = async () => {
   return moment.unix(timestamp)
 }
 
-module.exports = { getTimestamp }
+/**
+ * Gets timestamp of a block by blockNumber
+ * @param {number} block
+ */
+const getBlockTimestamp = async (block) => {
+  const { timestamp } = await hre.ethers.provider.getBlock(block)
+  return moment.unix(timestamp)
+}
+
+module.exports = { getTimestamp, getBlockTimestamp }
