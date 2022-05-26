@@ -12,52 +12,63 @@ import './IUniswapV2Oracle.sol';
 contract NPMReservesOracle is IUniswapV2Oracle{
     using FixedPoint for *;
 
-    uint public constant PERIOD = 1 hours;
+    uint public constant PERIOD = 10 minutes;
 
-    IUniswapV2Pair immutable pair;
-    address public immutable token0;
-    address public immutable token1;
+    IUniswapV2Pair pair;
+    address public token0;
+    address public token1;
 
-    uint    public reserve0CumulativeLast;
-    uint    public reserve1CumulativeLast;
+    uint256    public reserve0CumulativeLast;
+    uint256    public reserve1CumulativeLast;
     uint32  public blockTimestampLast;
     FixedPoint.uq112x112 public reserve0Average;
     FixedPoint.uq112x112 public reserve1Average;
 
-    uint public reserve0;
-    uint public reserve1;
+    uint32  public blockTimestampLastInternal;
+    uint256 public reserve0;
+    uint256 public reserve1;
 
     constructor(address factory, address tokenA, address tokenB) public {
         IUniswapV2Pair _pair = IUniswapV2Pair(UniswapV2Library.pairFor(factory, tokenA, tokenB));
         pair = _pair;
         token0 = _pair.token0();
         token1 = _pair.token1();
-        // price0CumulativeLast = _pair.price0CumulativeLast(); // fetch the current accumulated price value (1 / 0)
-        // price1CumulativeLast = _pair.price1CumulativeLast(); // fetch the current accumulated price value (0 / 1)
+
         (reserve0, reserve1, blockTimestampLast) = _pair.getReserves();
         require(reserve0 != 0 && reserve1 != 0, 'ExampleOracleSimple: NO_RESERVES'); // ensure that there's liquidity in the pair
 
-        blockTimestampLast = uint32(blockTimestampLast % 2**32);
-        reserve0CumulativeLast += uint(reserve0) * blockTimestampLast;
-        reserve1CumulativeLast += uint(reserve1) * blockTimestampLast;
+        update();
     }
 
-    function update() external override {
-        (reserve0, reserve1, blockTimestampLast) = pair.getReserves();
+    function currentBlockTimestamp() internal view returns (uint32) {
+        return uint32(block.timestamp % 2 ** 32);
+    }
 
-        require(reserve0 != 0 && reserve1 != 0, 'ExampleOracleSimple: NO_RESERVES'); // ensure that there's liquidity in the pair
+    function currentCumulativeReserves() internal returns (uint256 reserve0Cumulative, uint256 reserve1Cumulative, uint32 blockTimestamp) {
+        blockTimestamp = currentBlockTimestamp();
+        reserve0Cumulative = reserve0CumulativeLast;
+        reserve1Cumulative = reserve1CumulativeLast;
 
-        uint32 blockTimestamp = uint32(block.timestamp % 2**32);
+        // if time has elapsed since the last update on the pair, mock the accumulated price values
+        (reserve0, reserve1, blockTimestampLastInternal) = IUniswapV2Pair(pair).getReserves();
+        if (blockTimestampLastInternal != blockTimestamp) {
+            // subtraction overflow is desired
+            uint32 timeElapsed = blockTimestamp - blockTimestampLastInternal;
+            // addition overflow is desired
+            // counterfactual
+            reserve0Cumulative += uint256(reserve0) * timeElapsed;
+            // counterfactual
+            reserve1Cumulative += uint256(reserve1) * timeElapsed;
+        }
+    }
+
+    function update() public override {
+        (uint256 reserve0Cumulative, uint256 reserve1Cumulative, uint32  blockTimestamp) = currentCumulativeReserves();
+
         uint32 timeElapsed = blockTimestamp - blockTimestampLast; // overflow is desired
 
-        require(timeElapsed >= PERIOD, 'ExampleOracleSimple: PERIOD_NOT_ELAPSED');
-
-        uint reserve0Cumulative = reserve0CumulativeLast;
-        uint reserve1Cumulative = reserve1CumulativeLast;
-
-        if (blockTimestampLast != blockTimestamp) {        
-            reserve0Cumulative += uint(reserve0) * timeElapsed;
-            reserve1Cumulative += uint(reserve1) * timeElapsed;
+        if(timeElapsed < PERIOD){
+            return;
         }
 
         reserve0Average = FixedPoint.uq112x112(uint224((reserve0Cumulative - reserve0CumulativeLast) / timeElapsed));

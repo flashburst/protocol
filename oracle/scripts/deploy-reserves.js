@@ -14,6 +14,8 @@ async function main () {
   const ContractFactory = await ethers.getContractFactory('NPMReservesOracle')
   const deployed = await ContractFactory.deploy(factory, NPM, DAI)
 
+  await deployed.deployed()
+
   console.log('Contract deployment address:', deployed.address)
 }
 
