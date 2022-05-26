@@ -12,9 +12,11 @@ async function main () {
   console.log('Account balance:', (await deployer.getBalance()).toString())
 
   const ContractFactory = await ethers.getContractFactory('NPMPriceOracle')
-  const deployed = await ContractFactory.deploy(factory, NPM, DAI)
+  const priceOracle = await ContractFactory.deploy(factory, NPM, DAI)
 
-  console.log('Contract deployment address:', deployed.address)
+  await priceOracle.deployed()
+
+  console.log('Contract deployment address:', priceOracle.address)
 }
 
 main()
