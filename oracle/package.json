@@ -8,7 +8,10 @@
     "build": "hardhat compile",
     "clean": "hardhat clean",
     "compile:clean": "hardhat clean && hardhat compile",
-    "build:clean": "npm run compile:clean"
+    "build:clean": "npm run compile:clean",
+    "deploy": "hardhat run scripts/deploy.js --network hardhat",
+    "deploy:mumbai": "hardhat run scripts/deploy.js --network mumbai",
+    "fix": "standard --fix"
   },
   "author": "",
   "license": "SEE LICENSE IN <LICENSE>",
