@@ -233,6 +233,8 @@ library PolicyHelperV1 {
     )
   {
     (fee, platformFee) = getPolicyFeeInternal(s, coverKey, productKey, coverDuration, amountToCover);
+    console.log("[cp] fee: %s platformFee: %s", fee, platformFee);
+    console.log("[cp] coverDuration: %s amountToCover: %s", coverDuration, amountToCover);
     require(fee > 0, "Insufficient fee");
     require(platformFee > 0, "Insufficient platform fee");
 
