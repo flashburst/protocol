@@ -88,6 +88,33 @@ describe('Governance: finalize', () => {
     event.args.incidentDate.should.equal(incidentDate)
   })
 
+  it('must finalize correctly immediately after forceResolve', async () => {
+    const [, bob] = await ethers.getSigners()
+
+    await deployed.npm.transfer(bob.address, helper.ether(2000))
+    const amount = helper.ether(1000)
+
+    const reportingInfo = key.toBytes32('reporting-info')
+    await deployed.npm.approve(deployed.governance.address, amount)
+    await deployed.governance.report(coverKey, helper.emptyBytes32, reportingInfo, amount)
+
+    const incidentDate = await deployed.governance.getActiveIncidentDate(coverKey, helper.emptyBytes32)
+
+    const disputeInfo = key.toBytes32('dispute-info')
+    await deployed.npm.connect(bob).approve(deployed.governance.address, helper.add(amount, 1))
+    await deployed.governance.connect(bob).dispute(coverKey, helper.emptyBytes32, incidentDate, disputeInfo, helper.add(amount, 1))
+
+    await network.provider.send('evm_increaseTime', [1])
+    await deployed.resolution.forceResolve(coverKey, helper.emptyBytes32, incidentDate)
+
+    const tx = await deployed.resolution.finalize(coverKey, helper.emptyBytes32, incidentDate)
+    const { events } = await tx.wait()
+
+    const event = events.find(x => x.event === 'Finalized')
+    event.args.coverKey.should.equal(coverKey)
+    event.args.incidentDate.should.equal(incidentDate)
+  })
+
   it('reverts when accessed before claim expiry', async () => {
     const reportingInfo = key.toBytes32('reporting-info')
     await deployed.npm.approve(deployed.governance.address, helper.ether(1000))

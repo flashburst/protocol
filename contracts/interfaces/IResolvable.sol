@@ -21,6 +21,12 @@ interface IResolvable {
     uint256 incidentDate
   ) external;
 
+  function forceResolve(
+    bytes32 coverKey,
+    bytes32 productKey,
+    uint256 incidentDate
+  ) external;
+
   function emergencyResolve(
     bytes32 coverKey,
     bytes32 productKey,
