@@ -100,5 +100,9 @@
     "zerox",
     "zkrollup"
   ],
+  "git.ignoredRepositories": [
+    "./lib/ds-test",
+    "./lib/forge-std",
+  ],
   "git.detectSubmodules": false
 }
